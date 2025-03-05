@@ -1,0 +1,596 @@
+definitions:
+  handlers.APIResponse:
+    properties:
+      data: {}
+      error:
+        example: Error message if any
+        type: string
+      status:
+        example: 200
+        type: integer
+    type: object
+  handlers.CreateNoteRequest:
+    properties:
+      categories:
+        example:
+        - '["Work"'
+        - ' "Personal"]'
+        items:
+          type: string
+        type: array
+      content:
+        example: This is the content of the note.
+        type: string
+      title:
+        example: My Note Title
+        type: string
+      user_id:
+        example: 1
+        type: integer
+    type: object
+  handlers.ErrorResponse:
+    properties:
+      data:
+        description: |-
+          No data - null
+          Example: nil
+      error:
+        description: |-
+          Error message
+          Example: Invalid input data
+        type: string
+      status:
+        description: |-
+          HTTP status code
+          Example: 400
+        type: integer
+    type: object
+  handlers.GetNoteResponse:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      content:
+        example: Sample note content.
+        type: string
+      created_at:
+        example: "2025-02-01T12:00:00Z"
+        type: string
+      id:
+        example: 1
+        type: integer
+      is_archived:
+        example: false
+        type: boolean
+      title:
+        example: Sample Note Title
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        example: 1
+        type: integer
+    type: object
+  handlers.StatusResponse:
+    properties:
+      status:
+        example: OK
+        type: string
+    type: object
+  handlers.UpdateNoteRequest:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      content:
+        type: string
+      is_archived:
+        type: boolean
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  handlers.UserRequest:
+    properties:
+      password:
+        type: string
+      user_name:
+        type: string
+    type: object
+  handlers.UserResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_admin:
+        type: boolean
+      notes:
+        description: |-
+          Notes associated with the user
+          swagger:allOf []models.Note
+        items:
+          $ref: '#/definitions/models.Note'
+        type: array
+      updated_at:
+        type: string
+      user_name:
+        type: string
+    type: object
+  models.Category:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Note:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_archived:
+        type: boolean
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /status:
+    get:
+      consumes:
+      - application/json
+      description: Returns the status of the API to confirm it's running correctly.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Status OK
+          schema:
+            $ref: '#/definitions/handlers.StatusResponse'
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Check API status
+      tags:
+      - status
+  /user/login:
+    post:
+      consumes:
+      - application/json
+      description: Log in with username and password
+      parameters:
+      - description: ' '
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Authenticate user
+      tags:
+      - users
+  /user/logout:
+    post:
+      consumes:
+      - application/json
+      description: logout
+      produces:
+      - application/json
+      responses: {}
+      summary: logout connected user
+      tags:
+      - users
+  /user/register:
+    post:
+      consumes:
+      - application/json
+      description: Create user account with username and password
+      parameters:
+      - description: ' '
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Register new user
+      tags:
+      - users
+  /notes:
+    get:
+      description: Fetches all notes created by the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of notes
+          schema:
+            items:
+              $ref: '#/definitions/handlers.GetNoteResponse'
+            type: array
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - notes_jwt: []
+      summary: Retrieve all notes
+      tags:
+      - notes
+    post:
+      consumes:
+      - application/json
+      description: Adds a new note for the authenticated user.
+      parameters:
+      - description: Note data
+        in: body
+        name: note
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateNoteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Note created successfully
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "400":
+          description: Invalid input data
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - notes_jwt: []
+      summary: Create a new note
+      tags:
+      - notes
+  /notes/{noteId}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a note by its unique ID for the authenticated user.
+      parameters:
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Note ID of the deleted note
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "400":
+          description: Invalid note ID
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Note not found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - notes_jwt: []
+      summary: Delete a specific note by ID
+      tags:
+      - notes
+    get:
+      description: Fetches a single note by its unique ID for the authenticated user.
+      parameters:
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Note retrieved successfully
+          schema:
+            $ref: '#/definitions/handlers.GetNoteResponse'
+        "400":
+          description: Invalid note ID
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Note not found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - notes_jwt: []
+      summary: Retrieve a specific note by ID
+      tags:
+      - notes
+    put:
+      consumes:
+      - application/json
+      description: Updates the note for the authenticated user by its unique ID.
+      parameters:
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: integer
+      - description: Updated note data
+        in: body
+        name: note
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateNoteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Note ID of updated note
+          schema:
+            $ref: '#/definitions/handlers.APIResponse'
+        "400":
+          description: Invalid note ID or request data
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Note not found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - notes_jwt: []
+      summary: Update a specific note by ID
+      tags:
+      - notes
+  /notes/{noteId}/archive:
+    put:
+      consumes:
+      - application/json
+      description: Toggles whether a note is archived or not for the authenticated
+        user.
+      parameters:
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Note with updated archive status
+          schema:
+            $ref: '#/definitions/handlers.GetNoteResponse'
+        "400":
+          description: Invalid note ID
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Note not found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - notes_jwt: []
+      summary: Toggle the archive status of a note
+      tags:
+      - notes
+  /notes/{noteId}/categories/{categoryName}:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a category from a note for the authenticated user.
+      parameters:
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: integer
+      - description: Category name
+        in: path
+        name: categoryName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated note with removed category
+          schema:
+            $ref: '#/definitions/handlers.GetNoteResponse'
+        "400":
+          description: Invalid note ID or category name
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Note or category not found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - notes_jwt: []
+      summary: Remove a category from a specific note by ID
+      tags:
+      - notes
+    post:
+      consumes:
+      - application/json
+      description: Adds a category to a note for the authenticated user.
+      parameters:
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: integer
+      - description: Category name
+        in: path
+        name: categoryName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated note with added category
+          schema:
+            $ref: '#/definitions/handlers.GetNoteResponse'
+        "400":
+          description: Invalid note ID or category name
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Note or category not found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - notes_jwt: []
+      summary: Add a category to a specific note by ID
+      tags:
+      - notes
+  /notes/filter:
+    get:
+      description: Filters notes based on categories and archived status. Both parameters
+        are optional.
+      parameters:
+      - description: Filter by archived status (optional)
+        in: query
+        name: isArchived
+        type: boolean
+      - collectionFormat: csv
+        description: Filter notes by categories (optional)
+        in: query
+        items:
+          type: string
+        name: categories
+        type: array
+      responses:
+        "200":
+          description: Filtered notes
+          schema:
+            items:
+              $ref: '#/definitions/handlers.GetNoteResponse'
+            type: array
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - notes_jwt: []
+      summary: Filter notes by categories and archived status
+      tags:
+      - notes
+swagger: "2.0"
